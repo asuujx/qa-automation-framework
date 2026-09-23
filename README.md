@@ -40,3 +40,29 @@ Gitea will be available at http://localhost:3000.
 ### 3. Run the tests
 
     mvn test
+
+## Framework design
+
+### Project structure
+
+    src/test/java/io/github/asuujx/
+    ├── ui/
+    │   └── pages/    Page objects: one class per page, locators + user actions
+    └── tests/
+        └── ui/       UI test classes: test flow and assertions
+
+Framework code (`ui/`) and tests (`tests/`) are kept in separate packages.
+Tests depend on page objects, never the other way around.
+
+### Page Object Model rules
+
+1. **Page objects receive Playwright `Page` in the constructor and don't manage the browser.**
+   Why: <!-- TODO -->
+2. **Locators are private fields, initialized once in the constructor.**
+   Why: <!-- TODO -->
+3. **Methods express user intent** (e.g. `loginAs(username, password)`), not low-level steps.
+   Why: <!-- TODO -->
+4. **Navigation methods return the next page object** (e.g. `loginAs` → `DashboardPage`).
+   Why: <!-- TODO -->
+5. **No assertions in page objects.** Tests assert using `PlaywrightAssertions`.
+   Why: <!-- TODO -->
