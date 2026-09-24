@@ -57,12 +57,29 @@ Tests depend on page objects, never the other way around.
 ### Page Object Model rules
 
 1. **Page objects receive Playwright `Page` in the constructor and don't manage the browser.**
-   Why: <!-- TODO -->
+
+   The test owns the browser lifecycle (launch, context, cleanup). Page objects stay
+   reusable across tests and share one session, so a login in one page object is
+   visible to the next. Isolation and parallel runs are handled in one place.
+
 2. **Locators are private fields, initialized once in the constructor.**
-   Why: <!-- TODO -->
+
+   Each selector is defined in exactly one place. When the UI changes, only the page
+   object changes. Tests can't depend on page internals; they use the page's public
+   methods instead.
+
 3. **Methods express user intent** (e.g. `loginAs(username, password)`), not low-level steps.
-   Why: <!-- TODO -->
+
+   Tests read like user scenarios, and the steps of a flow live in one method. If the
+   login form gains a field, one method changes instead of every test that logs in.
+
 4. **Navigation methods return the next page object** (e.g. `loginAs` → `DashboardPage`).
-   Why: <!-- TODO -->
+
+   The return type documents where an action leads, and it makes flows easy to chain.
+   The compiler rejects code that calls dashboard actions while still on the login page.
+
 5. **No assertions in page objects.** Tests assert using `PlaywrightAssertions`.
-   Why: <!-- TODO -->
+
+   Page objects describe what the page *can do*. Tests decide what the *expected
+   outcome* is. That lets the same page object serve both positive and negative tests,
+   and a failing test points straight at the check that failed.
