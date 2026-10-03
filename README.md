@@ -12,6 +12,7 @@ UI tests, API tests, API-driven test data setup, reporting and CI.
 - Playwright for Java
 - JUnit 6
 - Maven
+- Allure Report
 - Docker Compose (Gitea test environment)
 
 ## Prerequisites
@@ -19,6 +20,7 @@ UI tests, API tests, API-driven test data setup, reporting and CI.
 - JDK 25
 - Maven 3.9+
 - Docker (Docker Desktop or OrbStack)
+- Node.js 20+ (only for viewing the Allure report)
 
 ## Getting started
 
@@ -40,3 +42,9 @@ Gitea will be available at http://localhost:3000.
 ### 3. Run the tests
 
     mvn test
+
+### 4. View the test report
+
+    npx allure@3.20.0 open target/allure-results
+
+This generates an Allure report from the latest test run and opens it in the browser.
