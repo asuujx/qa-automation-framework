@@ -49,17 +49,40 @@ Gitea will be available at http://localhost:3000.
 
 This generates an Allure report from the latest test run and opens it in the browser.
 
+## Configuration
+
+Settings live in `src/test/resources/config.properties`, with defaults for the local Docker
+environment. Each value can be overridden by a system property or an environment variable
+with the same name, in this order:
+
+1. System property: `mvn test -DHEADLESS=false`
+2. Environment variable: `BASE_URL=http://gitea:3000 mvn test`
+3. `config.properties`
+
+| Key              | Default                 | Description                         |
+|------------------|-------------------------|-------------------------------------|
+| `BASE_URL`       | `http://localhost:3000` | Gitea URL                           |
+| `ADMIN_USERNAME` | `gitea_admin`           | Admin user for UI tests             |
+| `ADMIN_PASSWORD` | `Admin123!`             | Admin password                      |
+| `HEADLESS`       | `true`                  | `false` shows the browser window    |
+
+The default password only protects the disposable local container. Any other environment
+should set `ADMIN_PASSWORD` as an environment variable (in CI: a repository secret).
+
 ## Framework design
 
 ### Project structure
 
     src/test/java/io/github/asuujx/
+    ├── config/       Config: reads settings (system property > env var > config.properties)
     ├── ui/
     │   └── pages/    Page objects: one class per page, locators + user actions
     └── tests/
         └── ui/       UI test classes: test flow and assertions
+    src/test/resources/
+    └── config.properties   Default settings for the local environment
 
-Framework code (`ui/`) and tests (`tests/`) are kept in separate packages.
+Framework code (`config/`, `ui/`) and tests (`tests/`) are kept in separate packages.
 Tests depend on page objects, never the other way around.
 
 ### Page Object Model rules
