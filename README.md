@@ -43,6 +43,10 @@ Gitea will be available at http://localhost:3000.
 
     mvn test
 
+To run only the UI tests:
+
+    mvn test -Dgroups=ui
+
 ### 4. View the test report
 
     npx allure@3.20.0 open target/allure-results
@@ -76,6 +80,7 @@ should set `ADMIN_PASSWORD` as an environment variable (in CI: a repository secr
     src/test/java/io/github/asuujx/
     ├── config/       Config: reads settings (system property > env var > config.properties)
     ├── ui/
+    │   ├── junit/    @UiTest + PlaywrightExtension: browser lifecycle, Page injection
     │   └── pages/    Page objects: one class per page, locators + user actions
     └── tests/
         └── ui/       UI test classes: test flow and assertions
@@ -85,11 +90,37 @@ should set `ADMIN_PASSWORD` as an environment variable (in CI: a repository secr
 Framework code (`config/`, `ui/`) and tests (`tests/`) are kept in separate packages.
 Tests depend on page objects, never the other way around.
 
+### Writing a UI test
+
+Annotate the class with `@UiTest` and take a `Page` as a test method parameter:
+
+```java
+@UiTest
+class LoginTest {
+
+    @Test
+    void shouldShowUserAvatarAfterValidLogin(Page page) {
+        DashboardPage dashboard = new LoginPage(page).open().loginAs(...);
+        ...
+    }
+}
+```
+
+`@UiTest` registers `PlaywrightExtension` and tags the tests with `ui`. The extension owns
+the browser lifecycle:
+
+| Object                         | Lifetime        | Why                                             |
+|--------------------------------|-----------------|-------------------------------------------------|
+| `Playwright`, `Browser`        | one per class   | launching a browser is slow, so it's shared     |
+| `BrowserContext`, `Page`       | one per test    | each test starts with clean cookies and storage |
+
+Everything is closed automatically when its scope ends. Tests contain no setup or teardown code.
+
 ### Page Object Model rules
 
 1. **Page objects receive Playwright `Page` in the constructor and don't manage the browser.**
 
-   The test owns the browser lifecycle (launch, context, cleanup). Page objects stay
+   The framework (`PlaywrightExtension`) owns the browser lifecycle. Page objects stay
    reusable across tests and share one session, so a login in one page object is
    visible to the next. Isolation and parallel runs are handled in one place.
 
