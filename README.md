@@ -80,7 +80,7 @@ should set `ADMIN_PASSWORD` as an environment variable (in CI: a repository secr
     src/test/java/io/github/asuujx/
     ├── config/       Config: reads settings (system property > env var > config.properties)
     ├── ui/
-    │   ├── junit/    @UiTest + PlaywrightExtension: browser lifecycle, Page injection
+    │   ├── junit/    @UiTest + PlaywrightExtension: browser lifecycle, Page injection, failure artifacts
     │   └── pages/    Page objects: one class per page, locators + user actions
     └── tests/
         └── ui/       UI test classes: test flow and assertions
@@ -115,6 +115,23 @@ the browser lifecycle:
 | `BrowserContext`, `Page`       | one per test    | each test starts with clean cookies and storage |
 
 Everything is closed automatically when its scope ends. Tests contain no setup or teardown code.
+
+### Debugging failed tests
+
+Every UI test is traced. When a test fails, three attachments are added to its Allure report:
+
+- **Page URL**: where the browser was when the test failed
+- **Screenshot**: full page, taken right after the failure
+- **Playwright trace**: a replay of the whole test (every action, DOM snapshot, network call and
+  console message), also saved to `target/playwright-traces/<TestClass>.<method>.zip`
+
+Open a trace in the Playwright trace viewer:
+
+    mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.classpathScope=test \
+      -D exec.args="show-trace target/playwright-traces/LoginTest.shouldShowUserAvatarAfterValidLogin.zip"
+
+or drag the zip onto [trace.playwright.dev](https://trace.playwright.dev) (it runs locally in the browser,
+nothing is uploaded). Traces of passing tests are discarded.
 
 ### Page Object Model rules
 
