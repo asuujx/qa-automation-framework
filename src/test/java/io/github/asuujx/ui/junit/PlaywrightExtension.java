@@ -5,7 +5,9 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.Tracing;
 import io.github.asuujx.config.Config;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -19,10 +21,13 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  *   <li>BrowserContext and Page: one per test, so every test starts with clean cookies and storage.</li>
  * </ul>
  *
+ * Every test is traced. When a test fails, the page URL, a screenshot and the trace are attached
+ * to the Allure report (see {@link FailureArtifacts}); when it passes, the trace is discarded.
+ *
  * Everything is kept in the JUnit {@link ExtensionContext.Store}, which closes {@link AutoCloseable}
  * values when their scope ends. Use it through {@link UiTest}.
  */
-public class PlaywrightExtension implements BeforeAllCallback, ParameterResolver {
+public class PlaywrightExtension implements BeforeAllCallback, ParameterResolver, AfterTestExecutionCallback {
 
     private static final ExtensionContext.Namespace NAMESPACE =
             ExtensionContext.Namespace.create(PlaywrightExtension.class);
@@ -49,6 +54,27 @@ public class PlaywrightExtension implements BeforeAllCallback, ParameterResolver
         return testPage.page();
     }
 
+    /**
+     * Runs right after the test method, before @AfterEach methods and before the page is closed,
+     * so the page is still in the state the test left it in.
+     */
+    @Override
+    public void afterTestExecution(ExtensionContext testContext) {
+        TestPage testPage = testContext.getStore(NAMESPACE).get(TestPage.class, TestPage.class);
+        if (testPage == null) {
+            return; // the test didn't use a browser
+        }
+        if (testContext.getExecutionException().isPresent()) {
+            FailureArtifacts.attach(testPage.context(), testPage.page(), testName(testContext));
+        } else {
+            testPage.context().tracing().stop();
+        }
+    }
+
+    private static String testName(ExtensionContext testContext) {
+        return testContext.getRequiredTestClass().getSimpleName() + "." + testContext.getRequiredTestMethod().getName();
+    }
+
     private record BrowserSession(Playwright playwright, Browser browser) implements AutoCloseable {
 
         static BrowserSession start() {
@@ -72,6 +98,8 @@ public class PlaywrightExtension implements BeforeAllCallback, ParameterResolver
         static TestPage open(Browser browser) {
             BrowserContext context = browser.newContext(
                     new Browser.NewContextOptions().setBaseURL(Config.baseUrl()));
+            // Screenshots + DOM snapshots let the trace viewer replay every step of the test
+            context.tracing().start(new Tracing.StartOptions().setScreenshots(true).setSnapshots(true));
             return new TestPage(context, context.newPage());
         }
 
